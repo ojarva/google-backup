@@ -1,0 +1,6 @@
+google-api-python-client==1.1
+httplib2==0.8
+oauth2client==1.1
+progressbar==2.3
+pysqlite==1.0.1
+# TODO: docopt

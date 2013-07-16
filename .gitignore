@@ -1,0 +1,9 @@
+syntax: glob
+
+*.pyc
+*.p12
+client_secrets.json
+get_users_credentials
+settings.py
+offlineimap_config_*
+.cache
