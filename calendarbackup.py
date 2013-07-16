@@ -1,5 +1,8 @@
 """
 Downloads all Google Calendar entries using Calendar API.
+
+Only downloads calendars where user have owner access (read-write-manage). This potentially leads to duplicate downloads with shared calendars. However, typical calendars are very small,
+so the only issue comes with 10k daily API quota.
 """
 
 from get_users import get_users
