@@ -31,5 +31,10 @@ Dependencies and settings
 -------------------------
 
 * pip install -r requirements.txt
-* Move settings.py.sample to settings.py. Modify it with values obtained from API console.
-* Currently requires zfs utility (can this be removed?)
+* Move settings.py.sample to settings.py. Modify it with values obtained above from API console.
+
+System Requirements
+-------------------------
+* Currently hardcoded to use zfs utility
+* Requires [OfflineIMAP](http://offlineimap.org/) for email sync
+
