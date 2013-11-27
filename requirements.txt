@@ -5,3 +5,4 @@ procname==0.3
 progressbar==2.3
 pysqlite>=1.0.1
 # TODO: docopt
+docopt==0.6.1
