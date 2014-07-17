@@ -10,5 +10,5 @@ SERVICE_ACCOUNT_PKCS12_FILE_PATH = '213ce08fefffffca31v03733fa91e70264ae470f-pri
 # Path for ZFS. Don't add leading or trailing slashes. Per-service and per-user ZFS volumes are created under this path.
 ZPOOL_ROOT_PATH="storage"
 
-# List of users to exclude from calendar download:
+# List of users to exclude from calendar download: (required field, make empty if not needed)
 CALENDAR_IGNORE_USERS = ["calendar.admin@futurice.com"]

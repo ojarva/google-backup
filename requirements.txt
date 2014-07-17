@@ -1,6 +1,8 @@
 google-api-python-client==1.1
 httplib2==0.8
 oauth2client==1.1
+procname==0.3
 progressbar==2.3
-pysqlite==1.0.1
+pysqlite>=1.0.1
 # TODO: docopt
+docopt==0.6.1
