@@ -31,7 +31,7 @@ def get_users(domain):
         flow = flow_from_clientsecrets('client_secrets.json', scope=scopes, redirect_uri='urn:ietf:wg:oauth:2.0:oob')
         auth_uri = flow.step1_get_authorize_url()
         print(auth_uri)
-        code = raw_input("Auth token: ")
+        code = input("Auth token: ")
         credentials = flow.step2_exchange(code)
         storage.put(credentials)
 
@@ -84,7 +84,7 @@ def main():
     for domain in sys.argv[1:]:
         users = get_users(domain)
         for item in users:
-            print item
+            print(item)
 
 
 if __name__ == '__main__':

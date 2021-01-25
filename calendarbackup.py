@@ -7,8 +7,6 @@ so the only issue comes with 10k daily API quota.
 
 import datetime
 import json
-import logging
-import logging.handlers
 import time
 
 from .get_users import get_users

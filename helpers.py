@@ -40,7 +40,7 @@ def timeit(func):
     return timer
 
 
-class BackupBase(object):
+class BackupBase:
     def __init__(self, system, user_email):
         self.system = system
         self.user_email = user_email

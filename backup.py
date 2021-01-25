@@ -27,7 +27,7 @@ SERVICES = ["gmail", "calendar", "drive"]
 
 
 def main():
-    """ Main method: parses command line arguments, fetch full list of users 
+    """ Main method: parses command line arguments, fetch full list of users
         and execute backups """
     run_services = []
     arguments = docopt(__doc__, version='Google Backup 0.1')

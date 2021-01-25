@@ -1,11 +1,3 @@
-PROCNAME = True
-try:
-    import procname
-except:
-    NOPROCNAME = False
-
-import logging
-import logging.handlers
 import multiprocessing
 import os
 import re
@@ -16,10 +8,16 @@ import time
 import httplib2
 import progressbar
 from oauth2client.client import SignedJwtAssertionCredentials
-from settings import *
+from .settings import *
 
-from get_users import get_users
-from helpers import BackupBase, get_logger, timeit
+from .get_users import get_users
+from .helpers import BackupBase, get_logger, timeit
+
+PROCNAME = True
+try:
+    import procname
+except ImportError:
+    NOPROCNAME = False
 
 SYSTEM = "gmail"
 logger = get_logger(SYSTEM)
@@ -27,13 +25,12 @@ logger = get_logger(SYSTEM)
 
 class GmailBackup(BackupBase):
     def __init__(self, user_email):
-        super(GmailBackup, self).__init__(SYSTEM, user_email)
+        super().__init__(SYSTEM, user_email)
 
     def impersonate_user(self, scope='https://mail.google.com/'):
         self.logger.debug("Impersonating user")
-        f = file(SERVICE_ACCOUNT_PKCS12_FILE_PATH, 'rb')
-        key = f.read()
-        f.close()
+        with open(SERVICE_ACCOUNT_PKCS12_FILE_PATH, 'rb') as keyfile:
+            key = keyfile.read()
 
         credentials = SignedJwtAssertionCredentials(SERVICE_ACCOUNT_EMAIL, key, scope=scope, sub=self.user_email)
         http = httplib2.Http(".cache")
@@ -105,9 +102,9 @@ maxconnections = 3
 
         while True:
             line = p.stderr.readline()
-            if line == None or line == '':
+            if line is None or line == '':
                 break
-            matches = re.search(' Copy message ([0-9]+) \(([0-9]+) of ([0-9]+)\) (.*)', line)
+            matches = re.search(r' Copy message ([0-9]+) \(([0-9]+) of ([0-9]+)\) (.*)', line)
             if not matches:
                 continue
             folder_messages = matches.group(3)
@@ -142,8 +139,8 @@ maxconnections = 3
 MAX_THREADS = 5
 
 
-def main_progressbar(users, q):
-    finished = max_val = missed = running_processes = 0
+def main_progressbar(users, q, logger):
+    finished = max_val = missed = 0
     is_a_tty = sys.stdout.isatty()
 
     if is_a_tty:
@@ -182,14 +179,14 @@ def main_progressbar(users, q):
                 main_progress.update(finished)
         if item[0] == "quit":
             break
-    self.logger.info("Finished. Downloaded %s/%s messages. Missing %s", finished, max_val, missed)
+    logger.info("Finished. Downloaded %s/%s messages. Missing %s", finished, max_val, missed)
     if is_a_tty:
         main_progress.finish()
 
 
 def runuser(user_email, queue):
     backup = GmailBackup(user_email)
-    backup.queue = runuser.queue
+    backup.queue = queue
     backup.initialize()
     return backup.run()
 
@@ -220,7 +217,7 @@ def main():
 
     try:
         r = pool.map_async(runuser, parameters, callback=results.append)
-        main_progressbar(len(users), queue)
+        main_progressbar(len(users), queue, logger)
         r.wait()
     except KeyboardInterrupt:
         r.terminate()
