@@ -4,27 +4,28 @@ try:
 except:
     NOPROCNAME = False
 
-from oauth2client.client import SignedJwtAssertionCredentials
-import httplib2
 import logging
 import logging.handlers
 import multiprocessing
 import os
-import progressbar
 import re
 import subprocess
 import sys
 import time
 
-from get_users import get_users
+import httplib2
+import progressbar
+from oauth2client.client import SignedJwtAssertionCredentials
 from settings import *
-from helpers import BackupBase, timeit, get_logger
+
+from get_users import get_users
+from helpers import BackupBase, get_logger, timeit
 
 SYSTEM = "gmail"
 logger = get_logger(SYSTEM)
 
-class GmailBackup(BackupBase):
 
+class GmailBackup(BackupBase):
     def __init__(self, user_email):
         super(GmailBackup, self).__init__(SYSTEM, user_email)
 
@@ -34,8 +35,7 @@ class GmailBackup(BackupBase):
         key = f.read()
         f.close()
 
-        credentials = SignedJwtAssertionCredentials(SERVICE_ACCOUNT_EMAIL, key,
-            scope=scope, sub=self.user_email)
+        credentials = SignedJwtAssertionCredentials(SERVICE_ACCOUNT_EMAIL, key, scope=scope, sub=self.user_email)
         http = httplib2.Http(".cache")
         http = credentials.authorize(http)
         credentials.refresh(http)
@@ -71,7 +71,11 @@ type = Gmail
 readonly = True
 maxconnections = 3
 
-""" % {"email": self.user_email, "rootpath": self.rootpath, "access_token": access_token}
+""" % {
+            "email": self.user_email,
+            "rootpath": self.rootpath,
+            "access_token": access_token
+        }
 
     def initialize_service(self):
         if not os.path.exists("%s/maildir" % self.rootpath):
@@ -87,7 +91,10 @@ maxconnections = 3
         config_filename = "config_files/offlineimap_config_%s" % self.user_email
         open(config_filename, "w").write(offlineimap_config)
 
-        command = ["/home/gmailbackup/gmailbackup/offlineimap/build/lib.linux-x86_64-2.7/offlineimaprun", "-c", config_filename, "-q"]
+        command = [
+            "/home/gmailbackup/gmailbackup/offlineimap/build/lib.linux-x86_64-2.7/offlineimaprun", "-c", config_filename,
+            "-q"
+        ]
 
         p = subprocess.Popen(command, stderr=subprocess.PIPE)
 
@@ -119,23 +126,35 @@ maxconnections = 3
         end = time.time()
         elapsed = end - start
         msgs = total_processed / elapsed
-        self.logger.info("Finished with return code %s in %.2f seconds. Downloaded %s/%s messages. %.2f msg/s", ret, elapsed, total_processed, total_messages, msgs)
+        self.logger.info(
+            "Finished with return code %s in %.2f seconds. Downloaded %s/%s messages. %.2f msg/s", ret, elapsed,
+            total_processed, total_messages, msgs
+        )
         # Subtract messages not processed from progress bar.
         if self.queue:
-            self.queue.put(["missed",  total_messages - total_processed])
+            self.queue.put(["missed", total_messages - total_processed])
             self.queue.put(["finished_user"])
         if PROCNAME:
             procname.setprocname("Gmail:null")
         return ret
 
+
 MAX_THREADS = 5
+
 
 def main_progressbar(users, q):
     finished = max_val = missed = running_processes = 0
     is_a_tty = sys.stdout.isatty()
 
     if is_a_tty:
-        main_progress = progressbar.ProgressBar(widgets=[progressbar.SimpleProgress(), " ", progressbar.Percentage(), " ", progressbar.ETA(), " ", progressbar.FileTransferSpeed("msg")])
+        main_progress = progressbar.ProgressBar(
+            widgets=[
+                progressbar.SimpleProgress(), " ",
+                progressbar.Percentage(), " ",
+                progressbar.ETA(), " ",
+                progressbar.FileTransferSpeed("msg")
+            ]
+        )
         main_progress.start()
 
     while True:
@@ -174,8 +193,10 @@ def runuser(user_email, queue):
     backup.initialize()
     return backup.run()
 
+
 def runuser_init(queue):
     runuser.queue = queue
+
 
 def main():
     if PROCNAME:
@@ -195,7 +216,7 @@ def main():
     for item in users:
         parameters.append((item, queue))
         runuser_init(queue)
-        print runuser(item, queue)
+        print(runuser(item, queue))
 
     try:
         r = pool.map_async(runuser, parameters, callback=results.append)

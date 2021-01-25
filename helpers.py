@@ -1,25 +1,29 @@
 import logging
 import logging.handlers
 import os
-import subprocess
 import pwd
-import httplib2
-from settings import *
-from apiclient.discovery import build
-from oauth2client.client import SignedJwtAssertionCredentials
+import subprocess
 import time
 from functools import wraps
 
+import httplib2
+from apiclient.discovery import build
+from oauth2client.client import SignedJwtAssertionCredentials
+
+from .settings import *
+
 TIMING = {}
+
 
 def get_logger(system):
     logger = logging.getLogger(system)
     logger.setLevel("INFO")
-    handler = logging.handlers.SysLogHandler(address = '/dev/log')
+    handler = logging.handlers.SysLogHandler(address='/dev/log')
     formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
 
 def timeit(func):
     @wraps(func)
@@ -32,7 +36,9 @@ def timeit(func):
             TIMING[name] = []
         TIMING[name].append(end - start)
         return result
+
     return timer
+
 
 class BackupBase(object):
     def __init__(self, system, user_email):
@@ -45,26 +51,24 @@ class BackupBase(object):
         self.timing = {}
 
     def print_timing(self):
-        print TIMING
+        print(TIMING)
 
     @timeit
     def _impersonate_user(self, scope):
         assert scope
 
         self.logger.debug("Impersonating user %s", self.user_email)
-        f = file(SERVICE_ACCOUNT_PKCS12_FILE_PATH, 'rb')
-        key = f.read()
-        f.close()
+        with open(SERVICE_ACCOUNT_PKCS12_FILE_PATH, 'rb') as f:
+            key = f.read()
 
-        credentials = SignedJwtAssertionCredentials(SERVICE_ACCOUNT_EMAIL, key,
-            scope=scope, sub=self.user_email)
+        credentials = SignedJwtAssertionCredentials(SERVICE_ACCOUNT_EMAIL, key, scope=scope, sub=self.user_email)
         http = httplib2.Http(".cache")
         http = credentials.authorize(http)
         credentials.refresh(http)
         return (http, credentials)
 
     @timeit
-    def impersonate_user(self, scope, service_name, service_version = None):
+    def impersonate_user(self, scope, service_name, service_version=None):
         (http, _) = self._impersonate_user(scope)
         service = build(serviceName=service_name, version=service_version, http=http)
         return service
@@ -100,4 +104,4 @@ class BackupBase(object):
         return True
 
     def run(self, *args, **kwargs):
-        raise ImproperlyConfigured("run() is not implemented")
+        raise NotImplementedError("run() is not implemented")
