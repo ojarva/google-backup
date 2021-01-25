@@ -3,20 +3,21 @@ Gets list of users from Google Apps.
 
 """
 
-import random
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-import apiclient
-import apiclient.discovery
-import httplib2
 import logging
 import logging.handlers
+import random
 import sys
 import time
 
+import apiclient
+import apiclient.discovery
+import httplib2
+from oauth2client.client import flow_from_clientsecrets
+from oauth2client.file import Storage
+
 logger = logging.getLogger('google-user-list')
 logger.setLevel("INFO")
-handler = logging.handlers.SysLogHandler(address = '/dev/log')
+handler = logging.handlers.SysLogHandler(address='/dev/log')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -27,12 +28,10 @@ def get_users(domain):
     scopes = ('https://www.googleapis.com/auth/admin.directory.user.readonly')
     credentials = storage.get()
     if not credentials:
-        flow = flow_from_clientsecrets('client_secrets.json',
-                               scope=scopes,
-                               redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+        flow = flow_from_clientsecrets('client_secrets.json', scope=scopes, redirect_uri='urn:ietf:wg:oauth:2.0:oob')
         auth_uri = flow.step1_get_authorize_url()
-        print auth_uri
-        code = raw_input("Auth token: ")
+        print(auth_uri)
+        code = input("Auth token: ")
         credentials = flow.step2_exchange(code)
         storage.put(credentials)
 
@@ -46,7 +45,12 @@ def get_users(domain):
     while True:
         for retrycount in range(1, 4):
             try:
-                users_page = service.users().list(fields='nextPageToken,users(primaryEmail,suspended,suspensionReason)', domain=domain, pageToken=next_page_token, maxResults=500).execute()
+                users_page = service.users().list(
+                    fields='nextPageToken,users(primaryEmail,suspended,suspensionReason)',
+                    domain=domain,
+                    pageToken=next_page_token,
+                    maxResults=500
+                ).execute()
                 next_page_token = users_page.get("nextPageToken")
                 users_page = users_page.get("users")
                 users.extend(users_page)
@@ -64,12 +68,14 @@ def get_users(domain):
 
     return users_filtered
 
+
 def usage():
-    print """
+    print("""
 Usage: %s <domain>
 
 Prints list of non-suspended users from Google Apps in random order
-"""
+""")
+
 
 def main():
     if len(sys.argv) == 1:
@@ -78,7 +84,8 @@ def main():
     for domain in sys.argv[1:]:
         users = get_users(domain)
         for item in users:
-            print item
+            print(item)
+
 
 if __name__ == '__main__':
     main()

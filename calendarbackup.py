@@ -5,19 +5,18 @@ Only downloads calendars where user have owner access (read-write-manage). This 
 so the only issue comes with 10k daily API quota.
 """
 
-from get_users import get_users
-import time
 import datetime
 import json
-import logging
-import logging.handlers
+import time
 
-from settings import CALENDAR_IGNORE_USERS, DOMAIN
-from helpers import BackupBase, timeit, get_logger
+from .get_users import get_users
+from .helpers import BackupBase, get_logger, timeit
+from .settings import CALENDAR_IGNORE_USERS, DOMAIN
 
 SYSTEM = "calendar"
 
 logger = get_logger(SYSTEM)
+
 
 class CalendarBackup(BackupBase):
     def __init__(self, user_email):
@@ -29,7 +28,7 @@ class CalendarBackup(BackupBase):
         start = time.time()
 
         try:
-            last_update = open(self.rootpath+"/last_update").read()
+            last_update = open(self.rootpath + "/last_update").read()
         except IOError:
             last_update = None
 
@@ -43,20 +42,33 @@ class CalendarBackup(BackupBase):
             page_token = None
             page_id = 0
             while True:
-                events = service.events().list(calendarId=calendar.get("id"), timeMin='2000-01-01T00:00:01Z', updatedMin=last_update, maxAttendees=500, pageToken=page_token).execute()
+                events = service.events().list(
+                    calendarId=calendar.get("id"),
+                    timeMin='2000-01-01T00:00:01Z',
+                    updatedMin=last_update,
+                    maxAttendees=500,
+                    pageToken=page_token
+                ).execute()
                 if len(events.get("items", [])) > 0:
-                    json.dump(events.get("items"), open("%s/%s-%s-%s" % (self.rootpath, calendar.get("id"), current_timestamp, page_id), "w"))
+                    json.dump(
+                        events.get("items"),
+                        open("%s/%s-%s-%s" % (self.rootpath, calendar.get("id"), current_timestamp, page_id), "w")
+                    )
                     total_entries += len(events.get("items"))
                 page_token = events.get('nextPageToken')
                 if not page_token:
                     break
                 page_id += 1
 
-        open(self.rootpath+"/last_update", "w").write(current_timestamp)
+        open(self.rootpath + "/last_update", "w").write(current_timestamp)
         end = time.time()
         elapsed = end - start
-        self.logger.info("Finished in %.2f seconds. updateMin=%s, saved %s. Downloaded %s entries", elapsed, last_update, current_timestamp, total_entries)
+        self.logger.info(
+            "Finished in %.2f seconds. updateMin=%s, saved %s. Downloaded %s entries", elapsed, last_update,
+            current_timestamp, total_entries
+        )
         return total_entries
+
 
 def main():
     users = get_users(DOMAIN)
@@ -67,11 +79,12 @@ def main():
         if user in CALENDAR_IGNORE_USERS:
             logger.info("Skipping %s due to ignore list", user)
             continue
-        logger.info("Status: %s/%s", index+1, len(users))
+        logger.info("Status: %s/%s", index + 1, len(users))
         calendarbackup = CalendarBackup(user)
         calendarbackup.initialize()
         total_entries += calendarbackup.run()
     logger.info("Finished downloading %s entries for %s users", total_entries, len(users))
+
 
 if __name__ == '__main__':
     main()

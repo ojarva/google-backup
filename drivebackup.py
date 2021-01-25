@@ -2,40 +2,40 @@
 Downloads files from Google Drive
 """
 
-import os
-import time
-import httplib
 import datetime
 import json
 import logging
 import logging.handlers
+import os
+import time
 
-from get_users import get_users
-from settings import DOMAIN
-from helpers import BackupBase, timeit, get_logger
+import httplib
+
+from .get_users import get_users
+from .helpers import BackupBase, get_logger
+from .settings import DOMAIN
 
 SYSTEM = "drive"
 logger = get_logger(SYSTEM)
 
-class DriveBackup(BackupBase):
 
+class DriveBackup(BackupBase):
     def __init__(self, user_email):
-        super(DriveBackup, self).__init__(SYSTEM, user_email)
+        super().__init__(SYSTEM, user_email)
 
     FORMAT_MAPPINGS = {
-       "application/vnd.google-apps.document": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-       "application/vnd.google-apps.spreadsheet": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-       "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-       "application/vnd.google-apps.form": None,
-       "application/vnd.google-apps.folder": None,
+        "application/vnd.google-apps.document": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.google-apps.spreadsheet": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/vnd.google-apps.form": None,
+        "application/vnd.google-apps.folder": None,
     }
 
-
     def initialize_service(self):
-        if not os.path.exists("%s/content" % self.rootpath):
-            os.mkdir("%s/content" % self.rootpath)
-        if not os.path.exists("%s/content/deleted" % self.rootpath):
-            os.mkdir("%s/content/deleted" % self.rootpath)
+        if not os.path.exists(f"{self.rootpath}/content"):
+            os.mkdir(f"{self.rootpath}/content")
+        if not os.path.exists(f"{self.rootpath}/content/deleted"):
+            os.mkdir(f"{self.rootpath}/content/deleted")
 
     def run(self):
         self.logger.info("Starting")
@@ -45,8 +45,9 @@ class DriveBackup(BackupBase):
         total_processed = total_messages = total_skipped = 0
 
         try:
-            last_fetch_time = open("%s/last_fetch_time" % self.rootpath).read()
-        except:
+            with open(f"{self.rootpath}/last_fetch_time") as last_fetch_file:
+                last_fetch_time = last_fetch_file.read()
+        except FileNotFoundError:
             last_fetch_time = "2012-01-01T00:00:00"
         highest_modification_time = datetime.datetime.utcnow().isoformat().split(".")[0]
 
@@ -57,13 +58,13 @@ class DriveBackup(BackupBase):
             files = {}
             for retrycount in range(0, 4):
                 try:
-                    files = service.files().list(q=query, pageToken = nextpagetoken).execute()
+                    files = service.files().list(q=query, pageToken=nextpagetoken).execute()
                     break
                 except httplib.BadStatusLine:
                     time.sleep(retrycount)
                     continue
-                except:
-                    self.logger.warning("Unhandled exception while downloading the file list")
+                except Exception as err:  # pylint: disable=broad-except
+                    self.logger.warning("Unhandled exception %r while downloading the file list", err)
                     time.sleep(retrycount)
                     continue
                 self.logger.warning("Fetching file list failed. Dropping last fetch time back to %s", last_fetch_time)
@@ -72,7 +73,7 @@ class DriveBackup(BackupBase):
                 mimetype = item.get("mimeType")
                 format_mapping = DriveBackup.FORMAT_MAPPINGS.get(mimetype, False)
                 total_messages += 1
-                if format_mapping == None:
+                if format_mapping is None:
                     self.logger.debug("Skipping %s: mime %s is marked as non-downloadable" % (item.get("id"), mimetype))
                     json.dump(item, open("%s/content/%s.json" % (self.rootpath, item.get("id")), "w"))
                     total_skipped += 1
@@ -87,7 +88,7 @@ class DriveBackup(BackupBase):
                     total_skipped += 1
                     continue
                 for retrycount in range(0, 4):
-                    try: 
+                    try:
                         resp, content = service._http.request(download_url)
                         if resp.status == 200:
                             open("%s/content/%s.data" % (self.rootpath, item.get("id")), "w").write(content)
@@ -108,14 +109,16 @@ class DriveBackup(BackupBase):
             if not nextpagetoken:
                 break
 
-        open("%s/last_fetch_time" % self.rootpath, "w").write(highest_modification_time)
+        with open(f"{self.rootpath}/last_fetch_time", "w") as last_fetch_file:
+            last_fetch_file.write(highest_modification_time)
 
         end = time.time()
         elapsed = end - start
         msgs = total_processed / elapsed
-        self.logger.info("Finished in %.2f seconds. Downloaded %s/%s files. %s was skipped. %.2f msg/s", elapsed, total_processed, total_messages, total_skipped, msgs)
-        return
-
+        self.logger.info(
+            "Finished in %.2f seconds. Downloaded %s/%s files. %s was skipped. %.2f msg/s", elapsed, total_processed,
+            total_messages, total_skipped, msgs
+        )
 
 
 def main():
@@ -126,6 +129,7 @@ def main():
         drivebackup = DriveBackup(user)
         drivebackup.initialize()
         drivebackup.run()
+
 
 if __name__ == '__main__':
     main()

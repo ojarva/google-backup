@@ -13,19 +13,21 @@ Options:
   --verbose     More verbose output.
 
 """
-from docopt import docopt
 import sys
 
-from calendarbackup import CalendarBackup
-from gmailbackup import GmailBackup
-from drivebackup import DriveBackup
-from get_users import get_users
-from settings import DOMAIN
+from docopt import docopt
+
+from .calendarbackup import CalendarBackup
+from .drivebackup import DriveBackup
+from .get_users import get_users
+from .gmailbackup import GmailBackup
+from .settings import DOMAIN
 
 SERVICES = ["gmail", "calendar", "drive"]
 
+
 def main():
-    """ Main method: parses command line arguments, fetch full list of users 
+    """ Main method: parses command line arguments, fetch full list of users
         and execute backups """
     run_services = []
     arguments = docopt(__doc__, version='Google Backup 0.1')
@@ -36,7 +38,7 @@ def main():
             if arguments[service]:
                 run_services.append(service)
     if len(run_services) == 0 or len(arguments["<user>"]) == 0:
-        print __doc__
+        print(__doc__)
         return 1
 
     users = arguments["<user>"]
@@ -56,6 +58,7 @@ def main():
                 backup.initialize()
                 backup.run()
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())
