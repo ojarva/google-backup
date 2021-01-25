@@ -1,6 +1,15 @@
 Backup for Google services
 ==========================
 
+Current status
+--------------
+
+This collection of programs is no longer maintained, and contains multiple bugs. This was in use around 2014, but many things have changed since.
+
+Overview
+--------
+
+
 Backs up Gmail/Drive/Calendar. Uses domain wide authentication, so no authorization 
 from Google Apps users is necessary. Emails are downloaded using modified offlineimap
 and [XOAUTH2](https://developers.google.com/gmail/xoauth2_protocol).
